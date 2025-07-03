@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 import "./index.css"
 import { getHint } from "~utils/gemini";
 
-import { FaArrowLeft, FaArrowRight} from "react-icons/fa";
+import { FaArrowLeft, FaArrowRight, FaSyncAlt } from "react-icons/fa";
 import { RiGeminiFill } from "react-icons/ri";
 
 import { getDescription, getTitle } from "~utils/chromeFunctions";
@@ -11,28 +11,54 @@ import { Button } from "~component/Button";
 function IndexPopup() {
     const [title, setTitle] = useState("");
     const [hints, setHints] = useState([]);
-    const [hintIDX, setHintIDX] = useState(-1);
+    const [hintIDX, setHintIDX] = useState(0);
 
     const [hintsLoading, setHintsLoading] = useState(false);
 
     async function fetch() {
         const t = await getTitle();
         setTitle(t);
+
+        const key = `hint_${t}`;
+        chrome.storage.session.get([key], (result) => {
+            console.log("session", result[key], key);
+            if (result[key]) {
+                setHints(result[key]);
+            }
+        });
     }
 
     useEffect(() => {
         fetch();
     }, [])
 
-
     async function handleGenerateHints() {
         setHintsLoading(true);
-        if (hints.length == 0) {
-            const description = await getDescription()
-            // const h = await getHint(title, description);
-            setHints(["just fukin solve it bro! what are u potato?", "What are you doing i said solve the fuck out of that question quick.", "Are u serious you cant even solve that simple question and u need help for that shit there"]);
-            // setHints(h);
+        const key = `hint_${title}`;
+
+        const storedHints: string[] = await new Promise((resolve) => {
+            chrome.storage.local.get([key], (res) => {
+                resolve(res[key]);
+            });
+        });
+
+        if (storedHints) {
+            setHints(storedHints);
+            chrome.storage.session.set({ [key]: storedHints }) //volotiale storgae
+
+            setHintIDX(0);
+            setHintsLoading(false);
+            return
         }
+
+        const description = await getDescription()
+        console.log("getting from gemini...");
+        const h = await getHint(title, description);
+        chrome.storage.local.set({ [key]: h }) //persistant stroage
+        chrome.storage.session.set({ [key]: h }) //volotiale storgae
+        setHints(h);
+        // setHints(["kagduiashdi asdhas diuashd iuashd asihd asidad", "aushdashd asdiuashd iashdi uadid", "haoshdiuashduas hdiuashd aisd"])
+
         setHintIDX(0);
         setHintsLoading(false);
     }
@@ -54,8 +80,10 @@ function IndexPopup() {
                 <h3 className="font-bold text-neutral-600">Problem: {title}</h3>
             </div>
 
-            <div className="text-sm text-neutral-900 whitespace-pre-wrap min-h-[70px] rounded-md p-1 bg-gray-100 outline-2 outline-dashed outline-neutral-400">
+            <div className="text-sm text-neutral-900 whitespace-pre-wrap min-h-[70px] rounded-md p-1 bg-gray-100 outline-2 outline-dashed outline-neutral-400 relative">
                 {hints.length == 0 ? "Tried to Solve it yourself first?" : hints[hintIDX]}
+
+                {hints.length>0 && <button className="absolute bottom-2 right-2"><FaSyncAlt /></button>}
             </div>
 
             <div className=" flex flex-col gap-2">
