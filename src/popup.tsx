@@ -12,11 +12,16 @@ function IndexPopup() {
     const [title, setTitle] = useState("");
     const [hints, setHints] = useState([]);
     const [hintIDX, setHintIDX] = useState(0);
+    const [error, setError] = useState(false);
 
     const [hintsLoading, setHintsLoading] = useState(false);
 
     async function fetch() {
         const t = await getTitle();
+        if (!t) {
+            setError(true);
+            return;
+        }
         setTitle(t);
 
         const key = `hint_${t}`;
@@ -83,7 +88,11 @@ function IndexPopup() {
         setHintIDX(p => (p + 1) % 3);
     }
 
-
+    if(error){
+        return<main className="p-4 w-[300px] flex flex-col gap-4"> 
+            <h1 className="text-xl font-bold text-red-500">Only works in leetcode/problems</h1>
+        </main>
+    }
 
     return (
         <main className="p-4 w-[300px] flex flex-col gap-4">
@@ -95,7 +104,7 @@ function IndexPopup() {
             <div className="text-sm text-neutral-900 whitespace-pre-wrap min-h-[70px] rounded-md p-1 bg-gray-100 outline-2 outline-dashed outline-neutral-400 relative">
                 {hints.length == 0 ? "Tried to Solve it yourself first?" : hints[hintIDX]}
 
-                {hints.length > 0 && <button className="absolute bottom-2 right-2" onClick={handleRegenrate}><FaSyncAlt className={`${hintsLoading && "animate-spin"}`}/></button>}
+                {hints.length > 0 && <button className="absolute bottom-2 right-2" onClick={handleRegenrate}><FaSyncAlt className={`${hintsLoading && "animate-spin"}`} /></button>}
             </div>
 
             <div className=" flex flex-col gap-2">
